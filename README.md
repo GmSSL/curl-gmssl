@@ -8,7 +8,7 @@
 先准备一个启用了 TLS、AES、SHA2 和 P-256 的 GmSSL：
 
 ```sh
-git clone https://github.com/GmSSL/GmSSL.git
+git clone --depth 1 --branch v3.2.0 https://github.com/guanzhi/GmSSL.git
 cd GmSSL
 
 cmake -S . -B build-tls \
@@ -58,10 +58,10 @@ Linux 上的 `GMSSL_LIBRARY` 通常是 `libgmssl.so`，macOS 上通常是
 输出中应包含类似内容：
 
 ```text
-libcurl/8.20.0 GmSSL/GmSSL 3.1.3 Dev
+libcurl/8.20.0 GmSSL/GmSSL 3.2.0
 ```
 
-其中 `GmSSL/GmSSL 3.1.3 Dev` 表示当前 curl 使用的是 GmSSL TLS 后端以及对应
+其中 `GmSSL/GmSSL 3.2.0` 表示当前 curl 使用的是 GmSSL TLS 后端以及对应
 GmSSL 版本。
 
 也可以在连接时使用 `-v` 查看握手结果：
@@ -132,4 +132,3 @@ TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
 当前不支持 AES-256、CCM 和 ChaCha20-Poly1305 cipher suite。如果显式指定的
 cipher suite 全部不被 GmSSL 后端支持，curl 会返回 cipher 配置错误，而不会回退到
 默认 cipher suite。
-

@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build curl-gmssl
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+
+      - name: Build GmSSL v3.2.0
+        run: |
+          git clone --depth 1 --branch v3.2.0 https://github.com/guanzhi/GmSSL.git "$RUNNER_TEMP/GmSSL"
+          cmake -S "$RUNNER_TEMP/GmSSL" -B "$RUNNER_TEMP/GmSSL/build" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/gmssl-install" \
+            -DENABLE_TLS=ON \
+            -DENABLE_AES=ON \
+            -DENABLE_SHA2=ON \
+            -DENABLE_SHA1=ON \
+            -DENABLE_SECP256R1=ON
+          cmake --build "$RUNNER_TEMP/GmSSL/build" --parallel 4
+          cmake --install "$RUNNER_TEMP/GmSSL/build"
+
+      - name: Configure curl-gmssl
+        run: |
+          cmake -S . -B build-gmssl \
+            -DCURL_USE_GMSSL=ON \
+            -DCURL_USE_OPENSSL=OFF \
+            -DCURL_USE_MBEDTLS=OFF \
+            -DGMSSL_LIBRARY="$RUNNER_TEMP/gmssl-install/lib/libgmssl.so" \
+            -DGMSSL_INCLUDE_DIR="$RUNNER_TEMP/gmssl-install/include" \
+            -DCURL_USE_LIBPSL=OFF \
+            -DCURL_ZSTD=OFF \
+            -DCURL_USE_LIBSSH2=OFF \
+            -DCURL_DISABLE_LDAP=ON \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_CURL_EXE=ON \
+            -DBUILD_EXAMPLES=OFF \
+            -DBUILD_TESTING=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_BUILD_RPATH="$RUNNER_TEMP/gmssl-install/lib"
+
+      - name: Build curl-gmssl
+        run: cmake --build build-gmssl --parallel 4
+
+      - name: Verify GmSSL backend
+        env:
+          LD_LIBRARY_PATH: ${{ runner.temp }}/gmssl-install/lib
+        run: |
+          ./build-gmssl/src/curl -V
+          ./build-gmssl/src/curl -V | grep "GmSSL/GmSSL 3.2.0"

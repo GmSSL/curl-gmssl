@@ -716,15 +716,13 @@ static CURLcode gmssl_connect_step1(struct Curl_cfilter *cf,
 
   /* Set SNI hostname */
   if(connssl->peer.sni) {
-    tls_set_server_name(&backend->conn,
-                        (const uint8_t *)connssl->peer.sni,
-                        strlen(connssl->peer.sni));
+    if(tls_set_hostname(&backend->conn, connssl->peer.sni) == 1)
+      tls_set_server_name(&backend->conn);
   }
   else if(connssl->peer.hostname &&
           connssl->peer.type == CURL_SSL_PEER_DNS) {
-    tls_set_server_name(&backend->conn,
-                        (const uint8_t *)connssl->peer.hostname,
-                        strlen(connssl->peer.hostname));
+    if(tls_set_hostname(&backend->conn, connssl->peer.hostname) == 1)
+      tls_set_server_name(&backend->conn);
   }
 
   infof(data, "GmSSL: Connecting to %s:%d",
